@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 src/data/data
+src/data/dataset
 # C extensions
 *.so
 
