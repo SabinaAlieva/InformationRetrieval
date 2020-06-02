@@ -24,4 +24,4 @@ if __name__ == '__main__':
         array = []
 
     df = pd.DataFrame(data)
-    df.to_csv(directory + "pikabu_dataset.csv")
+    df.to_csv(directory + "pikabu_dataset_new.csv")

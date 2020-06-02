@@ -8,6 +8,8 @@ from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
 import pymorphy2
 
+from pyspark import SparkContext
+from pyspark.sql import SparkSession
 
 stop_words = stopwords.words('russian')
 morph = pymorphy2.MorphAnalyzer()
@@ -24,18 +26,36 @@ def preprocessing(text):
     text = " ".join([morph.parse(word)[0].normal_form for word in text.split(" ")]) # лемматизация
     return text
 
+filename_source = "datapikabu_dataset_new.csv"
+filename = "pikabu_dataset_longText.csv"
+filename_new = "pikabu_dataset_clear.csv"
+filename_good = "pikabu_dataset_good.csv"
 
 if __name__ == "__main__":
-    # df = pd.read_csv("pikabu_dataset.csv")
-    df = pd.read_csv("hot_dataset.csv")
-    df_text = df[['Title', 'Tags', 'Text']]
 
-    df_text['Text'] = df_text.Text.apply(preprocessing)
-    df_text['Tags'] = df_text.Tags.apply(preprocessing)
-    df_text['Title'] = df_text.Title.apply(preprocessing)
+    df = pd.read_csv(filename_source)
+    df_enough = df[df['Text'].map(lambda x: len(str(x)) > 1000)]
+    df_enough.to_csv(filename, index=False)
 
-    df['Text'] = df_text['Text']
-    df['Title'] = df_text['Title']
-    df['Tags'] = df_text['Tags']
+    sc = SparkContext(master='local[*]')
 
-    df.to_csv("hot_dataset_processed.csv")
+    spark = SparkSession \
+        .builder \
+        .appName("PySpark") \
+        .getOrCreate()
+
+    df_spark = spark.read.csv(filename, inferSchema=True, header=True) \
+        .toDF('Number', 'FileName', 'Title', 'Link', 'ArticleId', 'Date', 'Views', \
+               'Author', 'Tags', 'AmountComments', 'Rating', 'Text')
+
+    prepr = F.udf(preprocessing, StringType())
+
+    df_clear = df_spark.withColumn('Text', prepr(df_spark['Text'])) \
+        .withColumn('Tags', prepr(df_spark['Tags'])) \
+        .withColumn('Title', prepr(df_spark['Title']))
+
+    df_clear = df_clear.toPandas()
+    df_clear.to_csv(filename_new)
+
+    df = df_clear[['Title', 'Link', 'Date', 'Views', 'Author', 'Tags', 'AmountComments', 'Rating', 'Text']]
+    df.to_csv(filename_good, index = None)

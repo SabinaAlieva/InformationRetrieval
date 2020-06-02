@@ -26,7 +26,7 @@ def text(page):
     """returns soup(page) article text"""
     try:
         text_ = page.find("div", {"class": "story__content-inner"}).text
-        # text_ = clean(text_)
+        text_ = clean(text_)
         return text_
     except:
         return None

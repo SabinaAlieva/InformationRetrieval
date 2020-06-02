@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 src/data/data
 src/data/dataset
+data/original
 # C extensions
 *.so
 
